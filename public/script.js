@@ -3,14 +3,26 @@
 ARCHIVO: script.js
 FUNCION GENERAL:
 Este archivo controla la logica del formulario.
-Aqui se capturan los datos, se validan, se envian al backend y se muestran registros.
-Los comentarios explican cada linea o cada bloque de forma detallada para uso en clase.
+Aqui se capturan los datos, se validan y se muestran en la pagina.
+Los datos se guardan localmente en el navegador usando localStorage.
 ================================================================================
 */
 
-// Guardamos en una constante la direccion base de la API del backend.
-// Usamos una ruta relativa porque el frontend y el backend se ejecutan en el mismo servidor.
-const API_URL = "/api/inscripciones";
+// Clave de localStorage para guardar las inscripciones.
+const STORAGE_KEY = "inscripcionesTalleres";
+
+function obtenerInscripcionesLocal() {
+    const datos = localStorage.getItem(STORAGE_KEY);
+    return datos ? JSON.parse(datos) : [];
+}
+
+function guardarInscripcionesLocal(inscripciones) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(inscripciones));
+}
+
+function generarId() {
+    return Date.now() + Math.floor(Math.random() * 1000);
+}
 
 // Buscamos en el HTML el formulario que tiene el id "formularioInscripcion".
 // Esta constante nos permite escuchar cuando el usuario intenta enviar el formulario.
@@ -63,6 +75,11 @@ const errorTaller = document.getElementById("errorTaller");
 // Buscamos el contenedor donde se van a mostrar las inscripciones guardadas.
 const listaInscripciones = document.getElementById("listaInscripciones");
 
+// Botones adicionales para limpiar el formulario, recargar la lista de inscripciones y comprobar el funcionamiento.
+const botonLimpiar = document.getElementById("btnLimpiar");
+const botonActualizar = document.getElementById("btnActualizar");
+const botonVerificar = document.getElementById("btnVerificar");
+
 /*
 ================================================================================
 FUNCION: limpiarErrores
@@ -108,6 +125,29 @@ function mostrarMensaje(texto, tipo) {
 
     // Asignamos las clases CSS necesarias para mostrar el mensaje con el color correcto.
     mensajeGeneral.className = `mensaje ${tipo}`;
+}
+
+/*
+================================================================================
+FUNCION: limpiarFormulario
+OBJETIVO:
+Reiniciar el formulario y limpiar los mensajes de error y estado.
+================================================================================
+*/
+function limpiarFormulario() {
+    formulario.reset();
+    limpiarErrores();
+}
+
+/*
+================================================================================
+FUNCION: probarServidor
+OBJETIVO:
+Informar que la aplicacion funciona sin servidor y guarda los datos en el navegador.
+================================================================================
+*/
+function probarServidor() {
+    mostrarMensaje("Esta pagina funciona sin servidor. Los datos se guardan localmente en este navegador.", "exito");
 }
 
 /*
@@ -229,7 +269,7 @@ function validarFormulario() {
 FUNCION: obtenerDatosFormulario
 OBJETIVO:
 Construir un objeto con los datos que el usuario escribio.
-Ese objeto se enviara al backend para guardarlo en SQLite.
+Este objeto se guardara localmente en el navegador.
 ================================================================================
 */
 function obtenerDatosFormulario() {
@@ -259,22 +299,19 @@ function obtenerDatosFormulario() {
 ================================================================================
 FUNCION: cargarInscripciones
 OBJETIVO:
-Pedir al backend la lista de inscripciones guardadas y mostrarlas en pantalla.
+Cargar la lista de inscripciones desde localStorage y mostrarlas en pantalla.
 ================================================================================
 */
 async function cargarInscripciones() {
     try {
-        // fetch hace una peticion HTTP al backend para obtener los registros.
-        const respuesta = await fetch(API_URL);
-
-        // Convertimos la respuesta del backend a formato JSON.
-        const inscripciones = await respuesta.json();
-
-        // Llamamos a la funcion que dibuja los registros en la pagina.
+        const inscripciones = obtenerInscripcionesLocal();
         mostrarInscripciones(inscripciones);
+        return true;
     } catch (error) {
-        // Si ocurre un error de conexion, mostramos un mensaje en la lista.
         listaInscripciones.innerHTML = "<p>No fue posible cargar las inscripciones.</p>";
+        mostrarMensaje("Ocurrió un error al leer los datos locales.", "fallo");
+        console.error("Error cargando inscripciones:", error);
+        return false;
     }
 }
 
@@ -329,43 +366,17 @@ OBJETIVO:
 Eliminar de la base de datos una inscripcion especifica usando su id.
 ================================================================================
 */
-async function eliminarInscripcion(id) {
-    // Pedimos confirmacion al usuario antes de eliminar, para evitar borrados accidentales.
+function eliminarInscripcion(id) {
     const confirmar = confirm("Deseas eliminar esta inscripcion?");
-
-    // Si el usuario cancela, detenemos la funcion.
     if (!confirmar) {
         return;
     }
 
-    try {
-        // Enviamos una peticion DELETE al backend indicando el id que queremos eliminar.
-        const respuesta = await fetch(`${API_URL}/${id}`, {
-            // method define el tipo de peticion HTTP; DELETE significa eliminar.
-            method: "DELETE"
-        });
-
-        // Convertimos la respuesta del backend a JSON.
-        const resultado = await respuesta.json();
-
-        // Revisamos si el backend respondio con error.
-        if (!respuesta.ok) {
-            // Si hubo error, mostramos el mensaje enviado por el backend.
-            mostrarMensaje(resultado.mensaje, "fallo");
-
-            // Terminamos la funcion porque no se elimino correctamente.
-            return;
-        }
-
-        // Si se elimino correctamente, mostramos un mensaje de exito.
-        mostrarMensaje(resultado.mensaje, "exito");
-
-        // Recargamos la lista para que el registro eliminado desaparezca de la pantalla.
-        cargarInscripciones();
-    } catch (error) {
-        // Si hubo un problema de conexion, mostramos un mensaje de error.
-        mostrarMensaje("No fue posible eliminar la inscripcion.", "fallo");
-    }
+    const inscripciones = obtenerInscripcionesLocal();
+    const nuevasInscripciones = inscripciones.filter((inscripcion) => inscripcion.id !== id);
+    guardarInscripcionesLocal(nuevasInscripciones);
+    mostrarMensaje("Inscripcion eliminada correctamente.", "exito");
+    cargarInscripciones();
 }
 
 /*
@@ -379,7 +390,7 @@ formulario.addEventListener("submit", async function (evento) {
     // preventDefault evita que el navegador recargue la pagina al enviar el formulario.
     evento.preventDefault();
 
-    // Validamos el formulario antes de enviar datos al servidor.
+    // Validamos el formulario antes de guardar los datos localmente.
     const formularioValido = validarFormulario();
 
     // Si el formulario no es valido, mostramos mensaje general y detenemos el proceso.
@@ -387,7 +398,7 @@ formulario.addEventListener("submit", async function (evento) {
         // Mensaje general para indicar que hay errores pendientes.
         mostrarMensaje("Revisa los campos marcados antes de guardar la inscripcion.", "fallo");
 
-        // return detiene la funcion para que no se envie informacion incorrecta al backend.
+        // return detiene la funcion porque no se envie informacion incorrecta.
         return;
     }
 
@@ -395,47 +406,34 @@ formulario.addEventListener("submit", async function (evento) {
     const datos = obtenerDatosFormulario();
 
     try {
-        // Enviamos los datos al backend usando fetch.
-        const respuesta = await fetch(API_URL, {
-            // method POST indica que queremos crear un nuevo registro.
-            method: "POST",
+        const inscripciones = obtenerInscripcionesLocal();
+        datos.id = generarId();
+        inscripciones.unshift(datos);
+        guardarInscripcionesLocal(inscripciones);
 
-            // headers informa al servidor que estamos enviando datos en formato JSON.
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            // body contiene los datos que se enviaran al backend.
-            // JSON.stringify convierte el objeto JavaScript en texto JSON.
-            body: JSON.stringify(datos)
-        });
-
-        // Convertimos la respuesta del backend a JSON para poder leer el mensaje.
-        const resultado = await respuesta.json();
-
-        // Revisamos si el backend respondio con error.
-        if (!respuesta.ok) {
-            // Si hubo error, mostramos el mensaje enviado por el servidor.
-            mostrarMensaje(resultado.mensaje, "fallo");
-
-            // Detenemos la funcion porque no se guardo correctamente.
-            return;
-        }
-
-        // Mostramos mensaje de confirmacion cuando la inscripcion se guarda correctamente.
-        mostrarMensaje(resultado.mensaje, "exito");
-
-        // Limpiamos los campos del formulario para permitir registrar otra persona.
+        mostrarMensaje("Inscripción guardada correctamente.", "exito");
         formulario.reset();
-
-        // Actualizamos la lista de inscripciones para mostrar el nuevo registro.
         cargarInscripciones();
     } catch (error) {
-        // Si no hay conexion con el servidor o ocurre otro problema, mostramos un error general.
-        mostrarMensaje("No fue posible conectar con el servidor.", "fallo");
+        mostrarMensaje("No fue posible guardar la inscripcion localmente.", "fallo");
+        console.error("Error guardando inscripcion:", error);
     }
 });
+if (botonLimpiar) {
+    botonLimpiar.addEventListener("click", limpiarFormulario);
+}
 
-// Cuando el navegador carga este archivo, llamamos a cargarInscripciones.
-// Esto permite mostrar automaticamente los registros guardados al abrir la pagina.
-cargarInscripciones();
+if (botonActualizar) {
+    botonActualizar.addEventListener("click", cargarInscripciones);
+}
+
+if (botonVerificar) {
+    botonVerificar.addEventListener("click", probarServidor);
+}
+
+// Cuando el navegador carga este archivo, inicializamos la lista local de inscripciones.
+async function iniciarAplicacion() {
+    await cargarInscripciones();
+}
+
+iniciarAplicacion();

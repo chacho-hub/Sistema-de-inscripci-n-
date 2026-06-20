@@ -89,8 +89,13 @@
                 <textarea id="observacion" placeholder="Escribe una observacion opcional"></textarea>
                 <!-- textarea permite escribir textos mas largos que un input normal. -->
 
-                <button type="submit">Guardar inscripcion</button>
-                <!-- type="submit" indica que este boton intenta enviar el formulario. JavaScript controlara ese envio. -->
+                <div class="botones-accion">
+                    <button type="submit" class="boton-principal">Guardar inscripcion</button>
+                    <button type="button" id="btnLimpiar" class="boton-secundario">Limpiar formulario</button>
+                    <button type="button" id="btnActualizar" class="boton-secundario">Actualizar inscripciones</button>
+                    <button type="button" id="btnVerificar" class="boton-secundario">Probar funcionamiento</button>
+                </div>
+                <!-- Fin del grupo de botones de accion. -->
             </form>
             <!-- Fin del formulario. -->
         </section>
