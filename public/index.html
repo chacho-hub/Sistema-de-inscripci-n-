@@ -22,13 +22,22 @@
         <section class="tarjeta formulario-tarjeta">
             <!-- section agrupa una parte de la pagina. Esta seccion contiene el formulario. -->
 
-            <h1>Inscripcion a Talleres Comunitarios</h1>
-            <!-- h1 es el titulo principal de la pagina. Solo debe existir un titulo principal por vista. -->
+            <div class="encabezado-formulario">
+                <span class="etiqueta-superior">Talleres comunitarios</span>
+                <h1>Inscripcion a Talleres Comunitarios</h1>
+                <!-- h1 es el titulo principal de la pagina. Solo debe existir un titulo principal por vista. -->
 
-            <p class="descripcion">
-                Registra una persona interesada en participar en los talleres. El sistema validara los datos y los guardara en una base de datos SQLite.
-            </p>
-            <!-- p crea un parrafo descriptivo para explicar al usuario que hace el formulario. -->
+                <p class="descripcion">
+                    Registra una persona interesada en participar en los talleres. El sistema validara los datos y los guardara en una base de datos SQLite.
+                </p>
+                <!-- p crea un parrafo descriptivo para explicar al usuario que hace el formulario. -->
+
+                <div class="resumen-talleres" aria-label="Resumen de talleres">
+                    <span>4 talleres disponibles</span>
+                    <span>Desde 12 anos</span>
+                    <span>Registro activo</span>
+                </div>
+            </div>
 
             <div id="mensajeGeneral" class="mensaje oculto"></div>
             <!-- Este div mostrara mensajes generales de error o confirmacion. Empieza oculto hasta que JavaScript lo necesite. -->
